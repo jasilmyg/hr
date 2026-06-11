@@ -609,17 +609,56 @@ function openPreview(id) {
 
 function closePreview() { document.getElementById('previewOverlay').classList.remove('open'); document.querySelectorAll('.doc-row').forEach(r=>r.classList.remove('selected')); currentId=null; }
 
-function handleSign() {
+async function handleSign() {
     const d=docs[currentId]; if(!d) return;
     const sig = getSig() || currentSig;
     if(!sig){showToast('No Signature','Create your signature in the pad first.','warning');closePreview();return;}
+
+    // ── Show UI immediately ──
     const img=document.getElementById('empSigImg'); img.src=sig; img.style.display='block'; img.classList.add('sig-applied'); setTimeout(()=>img.classList.remove('sig-applied'),600);
     d.status='signed'; currentSig=sig;
     const b=document.getElementById('prevBadge'); b.className='spill signed'; b.textContent='Signed';
-    const sBtn=document.getElementById('signBtn'); sBtn.innerHTML='✓ Signed'; sBtn.disabled=true; sBtn.style.opacity='.7'; document.getElementById('declineBtn').style.display='none';
+    const sBtn=document.getElementById('signBtn'); sBtn.innerHTML='<i class="ri-loader-4-line"></i> Saving…'; sBtn.disabled=true; sBtn.style.opacity='.8';
+    document.getElementById('declineBtn').style.display='none';
     const row=document.querySelector(`.doc-row[data-id="${currentId}"]`);
     if(row){row.dataset.status='signed';row.querySelector('.spill').className='spill signed';row.querySelector('.spill').textContent='Signed';const ic=row.querySelector('.doc-icon');ic.className='doc-icon green';ic.querySelector('i').className='ri-file-mark-line';}
-    addActivity('green','ri-check-line',`You signed: ${d.title}`,d.emp); updateStats(); showToast('Signed! ✓',`${d.title} signed successfully.`,'success');
+    updateStats();
+
+    // ── Save to Google Sheets + Drive ──
+    try {
+        showToast('Saving…', 'Uploading signature to Google Drive…', 'info');
+
+        const resp = await fetch('/api/esign/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                doc_title:     d.title,
+                employee_name: d.emp,
+                department:    d.dept,
+                status:        'signed',
+                notes:         '',
+                signature_b64: sig,
+            })
+        });
+
+        const result = await resp.json();
+
+        if (result.success) {
+            sBtn.innerHTML = '✓ Signed & Saved';
+            sBtn.style.opacity = '.7';
+            addActivity('green','ri-check-line',`Signed & saved to Sheets: ${d.title}`,d.emp);
+            showToast('Saved to Google Sheets ✓', `${d.title} signed. <a href="${result.sheet_url}" target="_blank" style="color:#6366f1;text-decoration:underline;">Open Sheet</a>`, 'success');
+        } else {
+            throw new Error(result.error || 'Unknown error');
+        }
+
+    } catch(err) {
+        console.error('Save failed:', err);
+        sBtn.innerHTML = '✓ Signed (Local)';
+        sBtn.style.opacity = '.7';
+        addActivity('green','ri-check-line',`Signed (offline): ${d.title}`,d.emp);
+        showToast('Signed Locally','Google Sheets save failed: ' + err.message, 'warning');
+    }
 }
 
 function handleDecline() {
