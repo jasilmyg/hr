@@ -3,7 +3,9 @@ import logging
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from dotenv import load_dotenv
 
-load_dotenv()
+# Use absolute path so .env is found regardless of where gunicorn is launched from
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_BASE_DIR, '.env'))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
