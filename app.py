@@ -129,47 +129,37 @@ def api_health():
 @app.route('/api/debug/credentials')
 def api_debug_credentials():
     """Check what credentials/env vars are configured on this server."""
-    import json
+    import json, base64 as b64mod
 
+    b64_str   = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64', '')
     json_str  = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')
     sheet_id  = os.environ.get('GOOGLE_SHEET_ID', '')
 
     info = {
-        'GOOGLE_SHEET_ID_set':            bool(sheet_id),
-        'GOOGLE_SHEET_ID_value':          sheet_id[:20] + '...' if sheet_id else 'NOT SET',
-        'GOOGLE_SERVICE_ACCOUNT_JSON_set': bool(json_str),
-        'GOOGLE_SERVICE_ACCOUNT_JSON_len': len(json_str),
+        'GOOGLE_SHEET_ID':                   sheet_id[:20] + '...' if sheet_id else 'NOT SET',
+        'GOOGLE_SERVICE_ACCOUNT_B64_set':    bool(b64_str),
+        'GOOGLE_SERVICE_ACCOUNT_B64_len':    len(b64_str),
+        'GOOGLE_SERVICE_ACCOUNT_JSON_set':   bool(json_str),
+        'GOOGLE_SERVICE_ACCOUNT_JSON_len':   len(json_str),
     }
 
-    # Try to parse the JSON
-    if json_str:
+    if b64_str:
         try:
-            parsed = json.loads(json_str)
-            info['json_parse'] = 'OK'
+            decoded = b64mod.b64decode(b64_str).decode('utf-8')
+            parsed  = json.loads(decoded)
+            info['B64_decode'] = 'OK'
             info['client_email'] = parsed.get('client_email', 'missing')
-            info['project_id']   = parsed.get('project_id', 'missing')
-            pk = parsed.get('private_key', '')
-            info['private_key_starts'] = pk[:30] + '...' if pk else 'MISSING'
-            info['private_key_has_newlines'] = '\\n' in pk or '\n' in pk
-        except json.JSONDecodeError as je:
-            info['json_parse'] = f'FAILED: {je}'
-            # Try replacing literal \n with actual newlines (common Render issue)
-            try:
-                fixed = json_str.replace('\\n', '\n')
-                parsed2 = json.loads(fixed)
-                info['json_parse_after_fix'] = 'OK after replacing \\\\n'
-                info['client_email'] = parsed2.get('client_email', 'missing')
-            except Exception as e2:
-                info['json_parse_after_fix'] = f'Still failed: {e2}'
+        except Exception as e:
+            info['B64_decode'] = f'FAILED: {e}'
 
-    # Try actual credentials
+    # Try actual credentials load
     try:
         from services.google_service import _get_credentials
         creds = _get_credentials()
         info['credentials_loaded'] = 'OK'
-        info['service_account_email'] = getattr(creds, 'service_account_email', 'unknown')
+        info['sa_email'] = getattr(creds, 'service_account_email', 'unknown')
     except Exception as e:
-        info['credentials_loaded'] = f'FAILED: {e}'
+        info['credentials_loaded'] = f'FAILED: {str(e)[:200]}'
 
     return jsonify(info), 200
 

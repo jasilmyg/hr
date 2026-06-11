@@ -39,40 +39,45 @@ SHEET_HEADERS = [
 def _get_credentials():
     """
     Load Google credentials.
-    - On Render (production): reads from GOOGLE_SERVICE_ACCOUNT_JSON env var
-    - Locally: reads from service_account.json file
+    Priority:
+      1. GOOGLE_SERVICE_ACCOUNT_B64  — base64-encoded JSON (most reliable for Render)
+      2. GOOGLE_SERVICE_ACCOUNT_JSON — raw JSON string
+      3. service_account.json file   — local development
     """
-    import json
+    import json, base64
 
-    # ── Try env var first (Render / production) ──
+    # ── Option 1: base64-encoded JSON (recommended for Render) ──
+    b64_str = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64', '').strip()
+    if b64_str:
+        try:
+            decoded = base64.b64decode(b64_str).decode('utf-8')
+            info = json.loads(decoded)
+            return Credentials.from_service_account_info(info, scopes=SCOPES)
+        except Exception as e:
+            raise ValueError(f"GOOGLE_SERVICE_ACCOUNT_B64 decode/parse failed: {e}")
+
+    # ── Option 2: raw JSON string (with newline fix) ──
     json_str = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '').strip()
     if json_str:
-        # Fix common Render issue: private_key \n gets stored as literal \\n
-        # Try parsing as-is first, then with newline fix
         for attempt, s in enumerate([json_str, json_str.replace('\\n', '\n')]):
             try:
                 info = json.loads(s)
-                # Ensure private_key has real newlines (not escaped \\n)
                 if 'private_key' in info:
                     info['private_key'] = info['private_key'].replace('\\n', '\n')
                 return Credentials.from_service_account_info(info, scopes=SCOPES)
             except json.JSONDecodeError:
                 if attempt == 1:
-                    raise ValueError(
-                        "GOOGLE_SERVICE_ACCOUNT_JSON is invalid JSON. "
-                        "Paste the entire service_account.json content as one line."
-                    )
+                    raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON is invalid JSON.")
             except Exception as e:
                 raise ValueError(f"Service account credentials error: {e}")
 
-    # ── Fall back to local file ──
+    # ── Option 3: local file ──
     key_filename = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE', 'service_account.json')
     if not os.path.isabs(key_filename):
         key_filename = os.path.join(PROJECT_ROOT, key_filename)
     if not os.path.exists(key_filename):
         raise FileNotFoundError(
-            f"No credentials found. Set GOOGLE_SERVICE_ACCOUNT_JSON env var "
-            f"(on Render) or place service_account.json at: {key_filename}"
+            "No Google credentials found. Set GOOGLE_SERVICE_ACCOUNT_B64 in Render."
         )
     return Credentials.from_service_account_file(key_filename, scopes=SCOPES)
 
