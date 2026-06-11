@@ -1,11 +1,14 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from dotenv import load_dotenv
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+# Ensure signatures folder exists on startup
+os.makedirs(os.path.join('static', 'signatures'), exist_ok=True)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'hr-dev-secret')
@@ -45,6 +48,11 @@ def payroll():
 @app.route('/esign')
 def esign():
     return render_template('esign.html', active='esign')
+
+# Serve saved signature images (used in Google Sheets =IMAGE() formula)
+@app.route('/static/signatures/<path:filename>')
+def serve_signature(filename):
+    return send_from_directory(os.path.join('static', 'signatures'), filename)
 
 # ────────────────────────────────────────────────
 # API — Save eSign record to Google Sheets + Drive

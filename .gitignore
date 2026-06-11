@@ -4,6 +4,9 @@
 service_account.json
 *_service_account*.json
 
+# Generated signature images (stored on server)
+static/signatures/
+
 # Python
 __pycache__/
 *.py[cod]
