@@ -1,11 +1,9 @@
-# Environment & secrets
-.env
-*.env
+# service_account.json is gitignored — credentials are in .env as GOOGLE_SERVICE_ACCOUNT_B64
 service_account.json
-*_service_account*.json
 
 # Generated signature images (stored on server)
 static/signatures/
+
 
 # Python
 __pycache__/
