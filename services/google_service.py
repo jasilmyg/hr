@@ -39,7 +39,7 @@ SHEET_HEADERS = [
 def _get_credentials():
     """
     Load Google credentials.
-    - On Render (production): reads from GOOGLE_SERVICE_ACCOUNT_JSON env var (JSON string)
+    - On Render (production): reads from GOOGLE_SERVICE_ACCOUNT_JSON env var
     - Locally: reads from service_account.json file
     """
     import json
@@ -47,11 +47,23 @@ def _get_credentials():
     # ── Try env var first (Render / production) ──
     json_str = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '').strip()
     if json_str:
-        try:
-            info = json.loads(json_str)
-            return Credentials.from_service_account_info(info, scopes=SCOPES)
-        except Exception as e:
-            raise ValueError(f"Invalid GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+        # Fix common Render issue: private_key \n gets stored as literal \\n
+        # Try parsing as-is first, then with newline fix
+        for attempt, s in enumerate([json_str, json_str.replace('\\n', '\n')]):
+            try:
+                info = json.loads(s)
+                # Ensure private_key has real newlines (not escaped \\n)
+                if 'private_key' in info:
+                    info['private_key'] = info['private_key'].replace('\\n', '\n')
+                return Credentials.from_service_account_info(info, scopes=SCOPES)
+            except json.JSONDecodeError:
+                if attempt == 1:
+                    raise ValueError(
+                        "GOOGLE_SERVICE_ACCOUNT_JSON is invalid JSON. "
+                        "Paste the entire service_account.json content as one line."
+                    )
+            except Exception as e:
+                raise ValueError(f"Service account credentials error: {e}")
 
     # ── Fall back to local file ──
     key_filename = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE', 'service_account.json')
