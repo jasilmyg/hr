@@ -14,6 +14,9 @@ import pytz
 import gspread
 from google.oauth2.service_account import Credentials
 
+# Project root = parent of this services/ folder
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # ──────────────────────────────────────────────────────────────
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -32,19 +35,24 @@ SHEET_HEADERS = [
 
 # ──────────────────────────────────────────────────────────────
 def _get_credentials():
-    key_file = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE', 'service_account.json')
-    if not os.path.exists(key_file):
-        raise FileNotFoundError(f"Service account file '{key_file}' not found.")
-    return Credentials.from_service_account_file(key_file, scopes=SCOPES)
+    # Always resolve relative to project root, not CWD
+    key_filename = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE', 'service_account.json')
+    if not os.path.isabs(key_filename):
+        key_filename = os.path.join(PROJECT_ROOT, key_filename)
+    if not os.path.exists(key_filename):
+        raise FileNotFoundError(
+            f"Service account file not found at: {key_filename}\n"
+            "Place service_account.json in the project root folder."
+        )
+    return Credentials.from_service_account_file(key_filename, scopes=SCOPES)
 
 
 # ──────────────────────────────────────────────────────────────
 # Save base64 PNG to static/signatures/ and return its filename
 # ──────────────────────────────────────────────────────────────
 def save_signature_locally(base64_data: str, filename: str) -> str:
-    """Save signature PNG to Flask's static/signatures/ folder."""
-    # Ensure folder exists
-    sig_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'signatures')
+    """Save signature PNG to static/signatures/ inside the project root."""
+    sig_dir = os.path.join(PROJECT_ROOT, 'static', 'signatures')
     os.makedirs(sig_dir, exist_ok=True)
 
     # Strip data URL prefix

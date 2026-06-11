@@ -626,7 +626,7 @@ async function handleSign() {
 
     // ── Save to Google Sheets + Drive ──
     try {
-        showToast('Saving…', 'Uploading signature to Google Drive…', 'info');
+        showToast('Saving…', 'Saving signature to Google Sheets…', 'info');
 
         const resp = await fetch('/api/esign/save', {
             method: 'POST',
