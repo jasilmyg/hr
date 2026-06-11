@@ -179,6 +179,12 @@ def save_esign_to_sheet(
     if not sheet_id or sheet_id == 'your_google_sheet_id_here':
         raise ValueError("GOOGLE_SHEET_ID is not configured in .env")
 
+    # Extract just the ID if a full Google Sheets URL was accidentally set
+    # e.g. https://docs.google.com/spreadsheets/d/SHEET_ID/edit  → SHEET_ID
+    if 'spreadsheets/d/' in sheet_id:
+        sheet_id = sheet_id.split('spreadsheets/d/')[1].split('/')[0].split('?')[0]
+        logging.info(f"[SHEETS] Extracted sheet ID from URL: {sheet_id}")
+
     ist = pytz.timezone('Asia/Kolkata')
     now = datetime.now(ist)
     timestamp_str = now.strftime('%Y-%m-%d %H:%M:%S IST')
