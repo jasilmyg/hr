@@ -42,6 +42,8 @@ def esign():
     return render_template('esign.html', active='esign')
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5050))
-    debug = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
+    # On Render, PORT is injected automatically.
+    # FLASK_DEBUG should be 'false' in production (set in render.yaml).
+    port  = int(os.environ.get('PORT', 5050))
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug)
