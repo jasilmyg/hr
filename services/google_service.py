@@ -37,11 +37,31 @@ SHEET_HEADERS = [
 
 
 def _get_credentials():
+    """
+    Load Google credentials.
+    - On Render (production): reads from GOOGLE_SERVICE_ACCOUNT_JSON env var (JSON string)
+    - Locally: reads from service_account.json file
+    """
+    import json
+
+    # ── Try env var first (Render / production) ──
+    json_str = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '').strip()
+    if json_str:
+        try:
+            info = json.loads(json_str)
+            return Credentials.from_service_account_info(info, scopes=SCOPES)
+        except Exception as e:
+            raise ValueError(f"Invalid GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+
+    # ── Fall back to local file ──
     key_filename = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE', 'service_account.json')
     if not os.path.isabs(key_filename):
         key_filename = os.path.join(PROJECT_ROOT, key_filename)
     if not os.path.exists(key_filename):
-        raise FileNotFoundError(f"Service account file not found at: {key_filename}")
+        raise FileNotFoundError(
+            f"No credentials found. Set GOOGLE_SERVICE_ACCOUNT_JSON env var "
+            f"(on Render) or place service_account.json at: {key_filename}"
+        )
     return Credentials.from_service_account_file(key_filename, scopes=SCOPES)
 
 
