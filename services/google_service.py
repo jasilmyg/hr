@@ -11,8 +11,6 @@ import base64
 import logging
 from datetime import datetime
 import pytz
-
-# Google libraries
 import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
