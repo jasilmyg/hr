@@ -1,14 +1,16 @@
 """
-Google Services — Sheets Integration
-Signature images are saved to Flask's static/signatures/ folder
-and served via the app's own URL (works on Render deployment).
-No external image hosting needed.
+Google Services — Sheets Integration + Catbox.moe Image Hosting
+  - Uploads signature PNG to catbox.moe (free, no API key, permanent URLs)
+  - Also saves locally to static/signatures/
+  - Writes eSign record to Google Sheets with =IMAGE() formula
 """
 
 import os
 import io
 import base64
 import logging
+import urllib.request
+import urllib.parse
 from datetime import datetime
 import pytz
 import gspread
@@ -29,43 +31,77 @@ SHEET_HEADERS = [
     'Signed By',
     'Date Signed',
     'Signature Image',
-    'Image Filename',
+    'Image URL',
     'Notes',
 ]
 
-# ──────────────────────────────────────────────────────────────
+
 def _get_credentials():
-    # Always resolve relative to project root, not CWD
     key_filename = os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE', 'service_account.json')
     if not os.path.isabs(key_filename):
         key_filename = os.path.join(PROJECT_ROOT, key_filename)
     if not os.path.exists(key_filename):
-        raise FileNotFoundError(
-            f"Service account file not found at: {key_filename}\n"
-            "Place service_account.json in the project root folder."
-        )
+        raise FileNotFoundError(f"Service account file not found at: {key_filename}")
     return Credentials.from_service_account_file(key_filename, scopes=SCOPES)
 
 
 # ──────────────────────────────────────────────────────────────
-# Save base64 PNG to static/signatures/ and return its filename
+# Save PNG locally to static/signatures/
 # ──────────────────────────────────────────────────────────────
-def save_signature_locally(base64_data: str, filename: str) -> str:
-    """Save signature PNG to static/signatures/ inside the project root."""
+def _save_locally(base64_data: str, filename: str) -> bytes:
+    """Save signature PNG locally and return the raw bytes."""
+    raw = base64_data.split(',', 1)[1] if ',' in base64_data else base64_data
+    img_bytes = base64.b64decode(raw)
+
     sig_dir = os.path.join(PROJECT_ROOT, 'static', 'signatures')
     os.makedirs(sig_dir, exist_ok=True)
-
-    # Strip data URL prefix
-    if ',' in base64_data:
-        base64_data = base64_data.split(',', 1)[1]
-
-    img_bytes = base64.b64decode(base64_data)
-    filepath   = os.path.join(sig_dir, filename)
-    with open(filepath, 'wb') as f:
+    with open(os.path.join(sig_dir, filename), 'wb') as f:
         f.write(img_bytes)
 
-    logging.info(f"[SIG] Saved signature: {filepath}")
-    return filename
+    logging.info(f"[SIG] Saved locally: {filename}")
+    return img_bytes
+
+
+# ──────────────────────────────────────────────────────────────
+# Upload PNG bytes to catbox.moe — free, no API key needed
+# Returns a permanent public URL like https://files.catbox.moe/abc123.png
+# ──────────────────────────────────────────────────────────────
+def _upload_to_catbox(img_bytes: bytes, filename: str) -> str:
+    """
+    Upload image to catbox.moe using multipart form-data.
+    No account or API key required. Files are permanent.
+    """
+    boundary = b'----CatboxBoundary7MA4YWxkTrZu0gW'
+
+    body = (
+        b'--' + boundary + b'\r\n'
+        b'Content-Disposition: form-data; name="reqtype"\r\n\r\n'
+        b'fileupload\r\n'
+        b'--' + boundary + b'\r\n' +
+        b'Content-Disposition: form-data; name="fileToUpload"; filename="' + filename.encode() + b'"\r\n'
+        b'Content-Type: image/png\r\n\r\n' +
+        img_bytes + b'\r\n'
+        b'--' + boundary + b'--\r\n'
+    )
+
+    req = urllib.request.Request(
+        'https://catbox.moe/user/api.php',
+        data=body,
+        headers={
+            'Content-Type': f'multipart/form-data; boundary={boundary.decode()}',
+            'User-Agent': 'HR-Portal/1.0',
+        },
+        method='POST',
+    )
+
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        url = resp.read().decode('utf-8').strip()
+
+    if not url.startswith('https://'):
+        raise RuntimeError(f"Catbox upload failed: {url}")
+
+    logging.info(f"[CATBOX] Uploaded: {url}")
+    return url
 
 
 # ──────────────────────────────────────────────────────────────
@@ -90,7 +126,7 @@ def _ensure_headers(worksheet):
 
 
 # ──────────────────────────────────────────────────────────────
-# Main: save image locally + write sheet row with =IMAGE()
+# Main: upload image → write sheet row with =IMAGE() formula
 # ──────────────────────────────────────────────────────────────
 def save_esign_to_sheet(
     doc_title:     str,
@@ -106,9 +142,6 @@ def save_esign_to_sheet(
     if not sheet_id or sheet_id == 'your_google_sheet_id_here':
         raise ValueError("GOOGLE_SHEET_ID is not configured in .env")
 
-    # App base URL — set APP_BASE_URL in .env on Render
-    base_url = os.environ.get('APP_BASE_URL', '').rstrip('/')
-
     ist = pytz.timezone('Asia/Kolkata')
     now = datetime.now(ist)
     timestamp_str = now.strftime('%Y-%m-%d %H:%M:%S IST')
@@ -118,27 +151,19 @@ def save_esign_to_sheet(
     safe_doc     = doc_title.replace(' ', '_').replace('/', '_')
     sig_filename = f"sig_{safe_name}_{safe_doc}_{now.strftime('%Y%m%d_%H%M%S')}.png"
 
-    # ── 1. Save signature image file locally ──
-    saved_filename = ''
-    img_formula    = ''
-    img_url        = ''
-
+    # ── 1. Save locally + upload to Catbox ──
+    img_url     = ''
+    img_formula = ''
     try:
-        saved_filename = save_signature_locally(signature_b64, sig_filename)
-        if base_url:
-            img_url     = f"{base_url}/static/signatures/{saved_filename}"
-            img_formula = f'=IMAGE("{img_url}")'
-            logging.info(f"[ESIGN] Image URL: {img_url}")
-        else:
-            # No public URL yet — store filename, formula set after deploy
-            img_url     = f"[Deploy to Render — /static/signatures/{saved_filename}]"
-            img_formula = ''
-            logging.info("[ESIGN] APP_BASE_URL not set — storing filename only")
+        img_bytes = _save_locally(signature_b64, sig_filename)
+        img_url   = _upload_to_catbox(img_bytes, sig_filename)
+        img_formula = f'=IMAGE("{img_url}")'
+        logging.info(f"[ESIGN] Image live at: {img_url}")
     except Exception as e:
-        logging.error(f"[ESIGN] Signature save error: {e}")
-        saved_filename = 'save_error'
+        logging.error(f"[ESIGN] Image upload error: {e}")
+        img_url = f'Upload error: {str(e)[:60]}'
 
-    # ── 2. Write to Sheets ──
+    # ── 2. Write to Google Sheets ──
     creds = _get_credentials()
     gc    = gspread.authorize(creds)
     sh    = gc.open_by_key(sheet_id)
@@ -160,13 +185,13 @@ def save_esign_to_sheet(
         status,
         signed_by,
         date_str,
-        img_formula if img_formula else img_url,
-        saved_filename,
+        img_formula if img_formula else img_url,   # col H: =IMAGE() or error
+        img_url,                                    # col I: raw URL
         notes,
     ]
     worksheet.append_row(row, value_input_option='USER_ENTERED')
 
-    # ── 3. Increase row height for image visibility ──
+    # ── 3. Increase row height so image is visible ──
     if img_formula:
         try:
             last_row = len(worksheet.get_all_values())
@@ -185,15 +210,15 @@ def save_esign_to_sheet(
                 }]
             })
         except Exception:
-            pass
+            pass  # non-critical
 
     logging.info(f"[SHEETS] Saved — {employee_name} / {doc_title}")
 
     return {
-        'success':    True,
-        'timestamp':  timestamp_str,
-        'img_url':    img_url,
-        'filename':   saved_filename,
-        'sheet_url':  f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit",
-        'sheet_id':   sheet_id,
+        'success':   True,
+        'timestamp': timestamp_str,
+        'img_url':   img_url,
+        'filename':  sig_filename,
+        'sheet_url': f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit",
+        'sheet_id':  sheet_id,
     }
