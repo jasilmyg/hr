@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1><i class="ri-calendar-check-line" style="color:var(--primary);font-size:1.5rem;vertical-align:middle;margin-right:.4rem;"></i> Leave Management</h1>
+        <p>Track, approve and manage employee leave requests</p>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('applyLeaveModal').classList.add('open')">
+        <i class="ri-calendar-line"></i> Apply Leave
+    </button>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon orange"><i class="ri-time-line"></i></div><div><div class="stat-value">5</div><div class="stat-label">Pending Requests</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="ri-checkbox-circle-line"></i></div><div><div class="stat-value">18</div><div class="stat-label">Approved This Month</div></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="ri-close-circle-line"></i></div><div><div class="stat-value">3</div><div class="stat-label">Rejected</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="ri-user-line"></i></div><div><div class="stat-value">4</div><div class="stat-label">On Leave Today</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title"><i class="ri-file-list-3-line"></i> Leave Requests</div>
+        <select id="leaveStatusFilter" onchange="filterLeave()" style="border:1px solid var(--border);border-radius:10px;padding:.45rem .75rem;font-size:.83rem;background:white;outline:none;font-family:inherit;color:var(--text-sub);">
+            <option value="">All Status</option>
+            <option>Pending</option><option>Approved</option><option>Rejected</option>
+        </select>
+    </div>
+    <table class="hr-table" id="leaveTable">
+        <thead>
+            <tr><th>Employee</th><th>Leave Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            {% set leaves = [
+                ('Vineeth Thomas','VT','#f59e0b','Sick Leave','9 Jun 2026','11 Jun 2026','3','Pending'),
+                ('Suresh Babu','SB','#8b5cf6','Casual Leave','12 Jun 2026','12 Jun 2026','1','Pending'),
+                ('Latha Krishnan','LK','#ec4899','Annual Leave','15 Jun 2026','19 Jun 2026','5','Pending'),
+                ('Asha Menon','AM','#10b981','Sick Leave','5 Jun 2026','6 Jun 2026','2','Approved'),
+                ('Rajesh Kumar','RK','#6366f1','Casual Leave','1 Jun 2026','1 Jun 2026','1','Approved'),
+                ('Priya Nair','PN','#3b82f6','Annual Leave','20 May 2026','24 May 2026','5','Approved'),
+                ('Mohammed Faiz','MF','#14b8a6','Sick Leave','18 May 2026','18 May 2026','1','Rejected'),
+            ] %}
+            {% for name, init, color, type, frm, to, days, status in leaves %}
+            <tr data-status="{{ status }}">
+                <td>
+                    <div style="display:flex;align-items:center;gap:.65rem;">
+                        <div class="emp-avatar" style="background:{{ color }};width:34px;height:34px;font-size:.73rem;">{{ init }}</div>
+                        <span style="font-weight:600;color:var(--text-main);">{{ name }}</span>
+                    </div>
+                </td>
+                <td>{{ type }}</td>
+                <td>{{ frm }}</td>
+                <td>{{ to }}</td>
+                <td><strong>{{ days }}</strong></td>
+                <td><span class="pill {% if status=='Approved' %}green{% elif status=='Pending' %}orange{% else %}red{% endif %}">{{ status }}</span></td>
+                <td>
+                    {% if status == 'Pending' %}
+                    <div style="display:flex;gap:.4rem;">
+                        <button class="btn btn-success" style="padding:.3rem .75rem;font-size:.78rem;" onclick="this.closest('tr').querySelector('.pill').className='pill green';this.closest('tr').querySelector('.pill').textContent='Approved';this.closest('tr').querySelector('td:last-child').innerHTML='';showToast('Approved','Leave approved for {{ name }}','success')"><i class="ri-check-line"></i> Approve</button>
+                        <button class="btn btn-danger"  style="padding:.3rem .75rem;font-size:.78rem;" onclick="this.closest('tr').querySelector('.pill').className='pill red';this.closest('tr').querySelector('.pill').textContent='Rejected';this.closest('tr').querySelector('td:last-child').innerHTML='';showToast('Rejected','Leave rejected for {{ name }}','error')"><i class="ri-close-line"></i></button>
+                    </div>
+                    {% else %}
+                    <span style="font-size:.78rem;color:var(--text-muted);">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Apply Leave Modal -->
+<div class="modal-overlay" id="applyLeaveModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ri-calendar-line" style="color:var(--primary)"></i> Apply for Leave</h3>
+            <button class="modal-close" onclick="document.getElementById('applyLeaveModal').classList.remove('open')"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="field"><label>Employee</label><select><option>Rajesh Kumar</option><option>Asha Menon</option><option>Vineeth Thomas</option><option>Priya Nair</option></select></div>
+            <div class="field"><label>Leave Type</label><select><option>Sick Leave</option><option>Casual Leave</option><option>Annual Leave</option><option>Maternity Leave</option><option>Emergency Leave</option></select></div>
+            <div class="grid-2">
+                <div class="field"><label>From Date</label><input type="date"></div>
+                <div class="field"><label>To Date</label><input type="date"></div>
+            </div>
+            <div class="field"><label>Reason</label><textarea rows="3" placeholder="Brief reason for leave…"></textarea></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('applyLeaveModal').classList.remove('open')">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('applyLeaveModal').classList.remove('open');showToast('Leave Submitted','Your leave request has been submitted','success')"><i class="ri-send-plane-line"></i> Submit Request</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterLeave() {
+    const status = document.getElementById('leaveStatusFilter').value;
+    document.querySelectorAll('#leaveTable tbody tr').forEach(row => {
+        row.style.display = (!status || row.dataset.status === status) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

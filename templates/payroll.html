@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1><i class="ri-money-rupee-circle-line" style="color:var(--primary);font-size:1.5rem;vertical-align:middle;margin-right:.4rem;"></i> Payroll</h1>
+        <p>Process and manage employee salary and payslips</p>
+    </div>
+    <div style="display:flex;gap:.75rem;">
+        <button class="btn btn-outline" onclick="showToast('Report','Payroll report downloaded!','success')"><i class="ri-file-excel-2-line"></i> Export</button>
+        <button class="btn btn-primary" onclick="showToast('Payroll','Payroll processing started…','info')"><i class="ri-play-circle-line"></i> Run Payroll</button>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon green"><i class="ri-money-rupee-circle-line"></i></div><div><div class="stat-value">₹38.4L</div><div class="stat-label">Total Payroll (Jun)</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="ri-team-line"></i></div><div><div class="stat-value">124</div><div class="stat-label">Employees to Pay</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="ri-time-line"></i></div><div><div class="stat-value">2</div><div class="stat-label">Pending Payslips</div></div></div>
+    <div class="stat-card"><div class="stat-icon indigo"><i class="ri-calendar-line"></i></div><div><div class="stat-value">30 Jun</div><div class="stat-label">Next Pay Date</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title"><i class="ri-file-list-3-line"></i> Salary Sheet — June 2026</div>
+        <div style="font-size:.82rem;color:var(--text-muted);">Showing 8 of 124 employees</div>
+    </div>
+    <table class="hr-table">
+        <thead><tr><th>Employee</th><th>Department</th><th>Basic Salary</th><th>HRA</th><th>Allowances</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead>
+        <tbody>
+            {% set payroll = [
+                ('Rajesh Kumar','RK','#6366f1','Engineering','₹65,000','₹26,000','₹8,000','₹9,750','₹89,250','Processed'),
+                ('Asha Menon','AM','#10b981','HR','₹48,000','₹19,200','₹6,000','₹7,200','₹66,000','Processed'),
+                ('Vineeth Thomas','VT','#f59e0b','Sales','₹55,000','₹22,000','₹12,000','₹8,250','₹80,750','Pending'),
+                ('Priya Nair','PN','#3b82f6','Finance','₹52,000','₹20,800','₹6,500','₹7,800','₹71,500','Processed'),
+                ('Suresh Babu','SB','#8b5cf6','Engineering','₹70,000','₹28,000','₹9,000','₹10,500','₹96,500','Processed'),
+                ('Latha Krishnan','LK','#ec4899','Marketing','₹58,000','₹23,200','₹8,500','₹8,700','₹81,000','Pending'),
+                ('Mohammed Faiz','MF','#14b8a6','Sales','₹45,000','₹18,000','₹7,000','₹6,750','₹63,250','Processed'),
+                ('Anita George','AG','#ef4444','HR','₹75,000','₹30,000','₹10,000','₹11,250','₹1,03,750','Processed'),
+            ] %}
+            {% for name, init, color, dept, basic, hra, allow, ded, net, status in payroll %}
+            <tr>
+                <td>
+                    <div style="display:flex;align-items:center;gap:.65rem;">
+                        <div class="emp-avatar" style="background:{{ color }};width:34px;height:34px;font-size:.73rem;">{{ init }}</div>
+                        <span style="font-weight:600;color:var(--text-main);">{{ name }}</span>
+                    </div>
+                </td>
+                <td>{{ dept }}</td>
+                <td>{{ basic }}</td>
+                <td>{{ hra }}</td>
+                <td>{{ allow }}</td>
+                <td style="color:#ef4444;">-{{ ded }}</td>
+                <td><strong style="color:#059669;">{{ net }}</strong></td>
+                <td>
+                    <span class="pill {% if status=='Processed' %}green{% else %}orange{% endif %}">{{ status }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

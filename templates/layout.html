@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Portal — myG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-logo">
+            <div class="brand-icon"><i class="ri-team-fill"></i></div>
+            <div>
+                <div class="brand-name">HR Portal</div>
+                <div class="brand-tagline">myG People Management</div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+
+        <a href="{{ url_for('dashboard') }}" class="nav-item {% if active=='dashboard' %}active{% endif %}">
+            <i class="ri-dashboard-3-line"></i>
+            Dashboard
+        </a>
+        <a href="{{ url_for('employees') }}" class="nav-item {% if active=='employees' %}active{% endif %}">
+            <i class="ri-team-line"></i>
+            Employees
+            <span class="nav-badge">24</span>
+        </a>
+        <a href="{{ url_for('leave') }}" class="nav-item {% if active=='leave' %}active{% endif %}">
+            <i class="ri-calendar-check-line"></i>
+            Leave Management
+            <span class="nav-badge orange">5</span>
+        </a>
+        <a href="{{ url_for('payroll') }}" class="nav-item {% if active=='payroll' %}active{% endif %}">
+            <i class="ri-money-rupee-circle-line"></i>
+            Payroll
+        </a>
+
+        <div class="nav-section-label">Tools</div>
+
+        <a href="{{ url_for('esign') }}" class="nav-item {% if active=='esign' %}active{% endif %}">
+            <i class="ri-quill-pen-line"></i>
+            eSign
+            <span class="nav-badge green">New</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-user">
+        <div class="user-avatar">{{ session.get('user_initials', 'HR') }}</div>
+        <div class="user-info">
+            <span class="name">{{ session.get('user_name', 'HR User') }}</span>
+            <span class="role">{{ session.get('user_role', 'HR Manager') }}</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ══ MAIN CONTENT ══ -->
+<main class="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<script>
+function showToast(title, msg, type='info') {
+    const icons = { success:'ri-checkbox-circle-fill', error:'ri-close-circle-fill', warning:'ri-alert-fill', info:'ri-information-fill' };
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = `<div class="toast-icon ${type}"><i class="${icons[type]}"></i></div><div class="toast-text"><strong>${title}</strong><span>${msg}</span></div>`;
+    c.appendChild(t);
+    setTimeout(() => { t.classList.add('leaving'); t.addEventListener('animationend', ()=>t.remove()); }, 3500);
+}
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

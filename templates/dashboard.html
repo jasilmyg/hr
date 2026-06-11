@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Good morning, {{ session.get('user_name','HR') }}! 👋</h1>
+        <p>Here's what's happening in your organisation today.</p>
+    </div>
+    <div style="display:flex;gap:.75rem;">
+        <span style="font-size:.85rem;color:var(--text-muted);background:white;padding:.5rem 1rem;border-radius:100px;border:1px solid var(--border);">
+            <i class="ri-calendar-line"></i>
+            <span id="todayDate"></span>
+        </span>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon indigo"><i class="ri-team-line"></i></div>
+        <div>
+            <div class="stat-value">124</div>
+            <div class="stat-label">Total Employees</div>
+            <div class="stat-change up">↑ 3 this month</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="ri-user-follow-line"></i></div>
+        <div>
+            <div class="stat-value">118</div>
+            <div class="stat-label">Present Today</div>
+            <div class="stat-change up">↑ 95.2% attendance</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="ri-calendar-close-line"></i></div>
+        <div>
+            <div class="stat-value">5</div>
+            <div class="stat-label">Leave Requests</div>
+            <div class="stat-change down">3 pending approval</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="ri-quill-pen-line"></i></div>
+        <div>
+            <div class="stat-value">8</div>
+            <div class="stat-label">eSign Pending</div>
+            <div class="stat-change down">4 awaiting response</div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid: Recent + Leave Requests -->
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+    <!-- Recent Activity -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="ri-team-line"></i> Recent Employees</div>
+            <a href="{{ url_for('employees') }}" class="btn btn-outline" style="font-size:.8rem;padding:.4rem .9rem;">View All</a>
+        </div>
+        <table class="hr-table">
+            <thead><tr><th>Employee</th><th>Department</th><th>Joined</th><th>Status</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><div style="display:flex;align-items:center;gap:.65rem;"><div class="emp-avatar" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">RK</div><div><div style="font-weight:600;color:var(--text-main);">Rajesh Kumar</div><div style="font-size:.75rem;color:var(--text-muted);">rajesh.k@myg.in</div></div></div></td>
+                    <td>Engineering</td><td>2 Jun 2026</td><td><span class="pill green">Active</span></td>
+                </tr>
+                <tr>
+                    <td><div style="display:flex;align-items:center;gap:.65rem;"><div class="emp-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">AM</div><div><div style="font-weight:600;color:var(--text-main);">Asha Menon</div><div style="font-size:.75rem;color:var(--text-muted);">asha.m@myg.in</div></div></div></td>
+                    <td>HR</td><td>28 May 2026</td><td><span class="pill green">Active</span></td>
+                </tr>
+                <tr>
+                    <td><div style="display:flex;align-items:center;gap:.65rem;"><div class="emp-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706);">VT</div><div><div style="font-weight:600;color:var(--text-main);">Vineeth Thomas</div><div style="font-size:.75rem;color:var(--text-muted);">vineeth.t@myg.in</div></div></div></td>
+                    <td>Sales</td><td>15 May 2026</td><td><span class="pill orange">On Leave</span></td>
+                </tr>
+                <tr>
+                    <td><div style="display:flex;align-items:center;gap:.65rem;"><div class="emp-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">PN</div><div><div style="font-weight:600;color:var(--text-main);">Priya Nair</div><div style="font-size:.75rem;color:var(--text-muted);">priya.n@myg.in</div></div></div></td>
+                    <td>Finance</td><td>1 May 2026</td><td><span class="pill green">Active</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Leave Requests -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="ri-calendar-check-line"></i> Leave Requests</div>
+            <a href="{{ url_for('leave') }}" class="btn btn-outline" style="font-size:.8rem;padding:.4rem .9rem;">View All</a>
+        </div>
+        <div style="padding:0;">
+            {% set leaves = [
+                ('Vineeth Thomas','VT','Sick Leave','3 days','#f59e0b'),
+                ('Suresh Babu','SB','Casual Leave','1 day','#6366f1'),
+                ('Latha K.','LK','Annual Leave','5 days','#10b981'),
+            ] %}
+            {% for name, init, type, days, color in leaves %}
+            <div style="padding:.9rem 1.25rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:.75rem;">
+                <div class="emp-avatar" style="background:{{ color }};width:36px;height:36px;font-size:.75rem;">{{ init }}</div>
+                <div style="flex:1;">
+                    <div style="font-size:.85rem;font-weight:600;color:var(--text-main);">{{ name }}</div>
+                    <div style="font-size:.77rem;color:var(--text-muted);">{{ type }} · {{ days }}</div>
+                </div>
+                <div style="display:flex;gap:.4rem;">
+                    <button onclick="showToast('Approved','Leave approved for {{ name }}','success')" style="width:28px;height:28px;border-radius:8px;border:none;background:#d1fae5;color:#059669;cursor:pointer;font-size:.85rem;"><i class="ri-check-line"></i></button>
+                    <button onclick="showToast('Declined','Leave declined for {{ name }}','error')" style="width:28px;height:28px;border-radius:8px;border:none;background:#fee2e2;color:#dc2626;cursor:pointer;font-size:.85rem;"><i class="ri-close-line"></i></button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- eSign Quick Access Banner -->
+<div style="background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);border-radius:20px;padding:1.75rem 2rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 30px rgba(15,23,42,0.25);">
+    <div style="display:flex;align-items:center;gap:1.25rem;">
+        <div style="width:52px;height:52px;border-radius:16px;background:rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#a5b4fc;">
+            <i class="ri-quill-pen-fill"></i>
+        </div>
+        <div>
+            <div style="font-size:1.05rem;font-weight:700;color:white;">eSign Center</div>
+            <div style="font-size:.83rem;color:rgba(255,255,255,.5);margin-top:2px;">4 documents are waiting for digital signature</div>
+        </div>
+    </div>
+    <a href="{{ url_for('esign') }}" class="btn btn-primary" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 14px rgba(99,102,241,0.4);padding:.75rem 1.5rem;font-size:.9rem;">
+        <i class="ri-quill-pen-line"></i> Go to eSign
+    </a>
+</div>
+
+<script>
+document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+</script>
+{% endblock %}

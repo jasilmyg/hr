@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1><i class="ri-team-line" style="color:var(--primary);font-size:1.5rem;vertical-align:middle;margin-right:.4rem;"></i> Employees</h1>
+        <p>Manage all employees, departments and roles</p>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('addEmpModal').classList.add('open')">
+        <i class="ri-user-add-line"></i> Add Employee
+    </button>
+</div>
+
+<div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="stat-card"><div class="stat-icon indigo"><i class="ri-team-line"></i></div><div><div class="stat-value">124</div><div class="stat-label">Total Employees</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="ri-user-follow-line"></i></div><div><div class="stat-value">118</div><div class="stat-label">Active</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="ri-user-unfollow-line"></i></div><div><div class="stat-value">4</div><div class="stat-label">On Leave</div></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="ri-user-forbid-line"></i></div><div><div class="stat-value">2</div><div class="stat-label">Resigned</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title"><i class="ri-list-check-2"></i> All Employees</div>
+        <div style="display:flex;gap:.65rem;align-items:center;">
+            <div style="display:flex;align-items:center;gap:.5rem;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:.45rem .9rem;">
+                <i class="ri-search-line" style="color:var(--text-muted);"></i>
+                <input type="text" placeholder="Search employees…" id="empSearch" oninput="filterTable()" style="border:none;outline:none;background:transparent;font-size:.85rem;font-family:inherit;color:var(--text-main);width:180px;">
+            </div>
+            <select onchange="filterTable()" id="deptFilter" style="border:1px solid var(--border);border-radius:10px;padding:.45rem .75rem;font-size:.83rem;background:white;outline:none;font-family:inherit;color:var(--text-sub);">
+                <option value="">All Departments</option>
+                <option>Engineering</option><option>HR</option><option>Sales</option><option>Finance</option><option>Marketing</option>
+            </select>
+        </div>
+    </div>
+    <table class="hr-table" id="empTable">
+        <thead>
+            <tr><th>Employee</th><th>Department</th><th>Role</th><th>Joined</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            {% set employees = [
+                ('Rajesh Kumar','RK','linear-gradient(135deg,#6366f1,#8b5cf6)','rajesh.k@myg.in','Engineering','Software Engineer','2 Jun 2026','Active'),
+                ('Asha Menon','AM','linear-gradient(135deg,#10b981,#059669)','asha.m@myg.in','HR','HR Executive','28 May 2026','Active'),
+                ('Vineeth Thomas','VT','linear-gradient(135deg,#f59e0b,#d97706)','vineeth.t@myg.in','Sales','Sales Manager','15 May 2026','On Leave'),
+                ('Priya Nair','PN','linear-gradient(135deg,#3b82f6,#2563eb)','priya.n@myg.in','Finance','Accountant','1 May 2026','Active'),
+                ('Suresh Babu','SB','linear-gradient(135deg,#8b5cf6,#7c3aed)','suresh.b@myg.in','Engineering','DevOps Engineer','20 Apr 2026','Active'),
+                ('Latha Krishnan','LK','linear-gradient(135deg,#ec4899,#db2777)','latha.k@myg.in','Marketing','Marketing Lead','10 Apr 2026','On Leave'),
+                ('Mohammed Faiz','MF','linear-gradient(135deg,#14b8a6,#0d9488)','mf@myg.in','Sales','Sales Executive','1 Apr 2026','Active'),
+                ('Anita George','AG','linear-gradient(135deg,#ef4444,#dc2626)','anita.g@myg.in','HR','HR Manager','15 Mar 2026','Active'),
+            ] %}
+            {% for name, init, bg, email, dept, role, joined, status in employees %}
+            <tr data-dept="{{ dept }}" data-name="{{ name|lower }}">
+                <td>
+                    <div style="display:flex;align-items:center;gap:.7rem;">
+                        <div class="emp-avatar" style="background:{{ bg }};width:36px;height:36px;font-size:.75rem;">{{ init }}</div>
+                        <div>
+                            <div style="font-weight:600;color:var(--text-main);font-size:.88rem;">{{ name }}</div>
+                            <div style="font-size:.75rem;color:var(--text-muted);">{{ email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ dept }}</td>
+                <td>{{ role }}</td>
+                <td>{{ joined }}</td>
+                <td><span class="pill {% if status=='Active' %}green{% elif status=='On Leave' %}orange{% else %}red{% endif %}">{{ status }}</span></td>
+                <td>
+                    <div style="display:flex;gap:.4rem;">
+                        <button class="btn btn-outline" style="padding:.3rem .7rem;font-size:.78rem;" onclick="showToast('Profile','Opening {{ name }} profile…','info')"><i class="ri-eye-line"></i></button>
+                        <button class="btn btn-outline" style="padding:.3rem .7rem;font-size:.78rem;" onclick="showToast('Edit','Edit mode for {{ name }}','info')"><i class="ri-edit-line"></i></button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="addEmpModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ri-user-add-line" style="color:var(--primary)"></i> Add New Employee</h3>
+            <button class="modal-close" onclick="document.getElementById('addEmpModal').classList.remove('open')"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="grid-2">
+                <div class="field"><label>First Name</label><input type="text" placeholder="e.g. Rajesh"></div>
+                <div class="field"><label>Last Name</label><input type="text" placeholder="e.g. Kumar"></div>
+            </div>
+            <div class="grid-2">
+                <div class="field"><label>Email</label><input type="email" placeholder="name@myg.in"></div>
+                <div class="field"><label>Mobile</label><input type="tel" placeholder="+91 9876543210"></div>
+            </div>
+            <div class="grid-2">
+                <div class="field"><label>Department</label><select><option>Engineering</option><option>HR</option><option>Sales</option><option>Finance</option><option>Marketing</option></select></div>
+                <div class="field"><label>Role</label><input type="text" placeholder="e.g. Software Engineer"></div>
+            </div>
+            <div class="field"><label>Date of Joining</label><input type="date"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('addEmpModal').classList.remove('open')">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('addEmpModal').classList.remove('open');showToast('Employee Added','New employee added successfully!','success')"><i class="ri-check-line"></i> Save Employee</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    const search = document.getElementById('empSearch').value.toLowerCase();
+    const dept   = document.getElementById('deptFilter').value;
+    document.querySelectorAll('#empTable tbody tr').forEach(row => {
+        const nameMatch = !search || row.dataset.name.includes(search);
+        const deptMatch = !dept   || row.dataset.dept === dept;
+        row.style.display = nameMatch && deptMatch ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}
